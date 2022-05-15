@@ -1,0 +1,361 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 GLOBAL           flashing
+    2 00000000                 AREA             mydata,DATA,READWRITE
+    3 00000000         
+    4 00000000 00000000 
+                       SUMADR  DCD              0           ;RESERVES 4BIT ADRE
+                                                            SS
+    5 00000004         
+    6 00000004                 AREA             mycode,CODE,READONLY
+    7 00000000         
+    8 00000000         
+    9 00000000         flashing
+   10 00000000         user_code
+   11 00000000 E0020000 
+                       PINSEL0 EQU              0xE0020000
+   12 00000000 00000008 
+                       IO0DIR  EQU              0x8
+   13 00000000 E0028000 
+                       IO0PIN  EQU              0xE0028000
+   14 00000000 00000004 
+                       IO0SET  EQU              0x4
+   15 00000000 0000000C 
+                       IO0CLR  EQU              0xC
+   16 00000000 0000FF00 
+                       LEDMASK EQU              0x0000FF00
+   17 00000000         
+   18 00000000         ;TASK 1
+   19 00000000 00000001 
+                       count   EQU              0X1         ;sum will be from 1
+                                                             to count
+   20 00000000 E3A00001        LDR              R0, =count
+   21 00000004 E3A01000        MOV              r1, #0x0
+   22 00000008 E3A02000        MOV              r2, #0x0
+   23 0000000C E59F4014        LDR              r4, =SUMADR
+   24 00000010         
+   25 00000010         
+   26 00000010 E2822001 
+                       sum     ADD              r2, r2, #0x1 ;Increment R2 (R2+
+                                                            +)
+   27 00000014 E0811002        ADD              r1, r1, r2  ;UPDATE R1 WITH R2 
+                                                            N+1(reccurance rela
+                                                            tion)
+   28 00000018 E4841004        STR              r1, [r4],#4
+   29 0000001C E2503001        SUBS             r3, r0, #0x1 ;DECREMENT COUNTER
+                                                             AND SET FLAGS
+   30 00000020 E1A00003        MOV              R0, r3      ;update counter
+   31 00000024 1AFFFFF9        BNE              sum         ;Loop if counter is
+                                                             NOT ZERO; EXIT if 
+                                                            counter = 0(Z-flag)
+                                                            
+   32 00000028         
+   33 00000028         ;TASK 3 
+   34 00000028                 GLOBAL           user_code
+   35 00000028 00000000        AREA             mycode, CODE, READONLY
+   36 0000002C         
+   37 0000002C         
+   38 0000002C 0000006F 
+                       char    EQU              0X6F        ; ascii for 'o'
+   39 0000002C E59F0080        LDR              R0,=myString ;BASE ADRESS
+   40 00000030 E3A0206F        LDR              R2,=char
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   41 00000034 E3A03000        MOV              R3,#0X0     ;INITIALIZE COUNTER
+                                                            
+   42 00000038 E5D01000        LDRB             R1,[R0]     ;LOADING BYTES 
+   43 0000003C E1510002        CMP              R1,R2       ;CHECKS IF THE CHAR
+                                                             IS A 'o'
+   44 00000040 02833001        ADDEQ            R3,#0X1     ;INCREMENTS COUNTER
+                                                             IF TRUE ^^^
+   45 00000044         
+   46 00000044 E5F01001 
+                       charCount
+                               LDRB             R1,[R0,#0X1]! ;SHIFTS ADRESS TO
+                                                             NEXT BYTE IN STRIN
+                                                            G. SAVES RESULT IN 
+                                                            R0 MEMORY
+   47 00000048         
+   48 00000048 E1510002        CMP              R1,R2       ;CHECKS IF CHAR IS 
+                                                            IN CURRENT BYTE
+   49 0000004C 02833001        ADDEQ            R3,#0X1     ;INCREMENTS R3 IF T
+                                                            RUE
+   50 00000050 E3510000        CMP              R1,#0X0     ;CHECKS IF REACHED 
+                                                            END OF STRING 
+   51 00000054 1AFFFFFA        BNE              charCount
+   52 00000058         ;task 4
+   53 00000058         
+   54 00000058 00B71B00 
+                       CLOCK   EQU              12000000
+   55 00000058 002DC6C0 
+                       DELAY1S EQU              (CLOCK/4)
+   56 00000058         
+   57 00000058 E3A04000        MOV              r4, #0
+   58 0000005C E59F5054        LDR              r5, =PINSEL0
+   59 00000060 E5854000        STR              r4, [r5]
+   60 00000064         
+   61 00000064 E3A05008        LDR              r5, =IO0DIR
+   62 00000068 E5956008        LDR              r6, [r5, #IO0DIR]
+   63 0000006C E3A04CFF        LDR              r4, =LEDMASK
+   64 00000070 E1866004        ORR              r6,r6,r4
+   65 00000074 E5816008        STR              r6, [r1,#IO0DIR]
+   66 00000078         
+   67 00000078 E3A07005 
+                       LOOP    LDR              r7, =5
+   68 0000007C E2577001        SUBS             r7,r7,#1
+   69 00000080 E3A04CFF        MOV              r4, #LEDMASK
+   70 00000084 E585400C        STR              r4, [r5,#IO0CLR]
+   71 00000088 E59F802C        LDR              r8, =DELAY1S
+   72 0000008C E2588001 
+                       DELAY1  SUBS             r8,r8,#1
+   73 00000090 1AFFFFFD        BNE              DELAY1
+   74 00000094 E5854004        STR              r4, [r5,#IO0SET]
+   75 00000098 E59F801C        LDR              r8, =DELAY1S
+   76 0000009C E2588001 
+                       DELAY2  SUBS             r8,r8,#1
+   77 000000A0 1AFFFFFD        BNE              DELAY2
+   78 000000A4 EAFFFFF3        B                LOOP
+   79 000000A8         
+   80 000000A8 4F 63 74 
+              6F 70 75 
+              73 00    myString
+                               DCB              "Octopus",0
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   81 000000B0                 ALIGN
+   82 000000B0         
+   83 000000B0 EAFFFFFE 
+                       stop    B                stop        ;endless loop
+   84 000000B4                 END
+              00000000 
+              E0020000 
+              002DC6C0 
+Command Line: --debug --xref --apcs=interwork --depend=.\objects\mycode.d -o.\o
+bjects\mycode.o -IC:\Keil\ARM\RV31\INC -IC:\Keil\ARM\CMSIS\Include -IC:\Keil\AR
+M\Inc\Philips --predefine="__EVAL SETA 1" --list=.\listings\mycode.lst mycode.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+SUMADR 00000000
+
+Symbol: SUMADR
+   Definitions
+      At line 4 in file mycode.s
+   Uses
+      At line 23 in file mycode.s
+Comment: SUMADR used once
+mydata 00000000
+
+Symbol: mydata
+   Definitions
+      At line 2 in file mycode.s
+   Uses
+      None
+Comment: mydata unused
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DELAY1 0000008C
+
+Symbol: DELAY1
+   Definitions
+      At line 72 in file mycode.s
+   Uses
+      At line 73 in file mycode.s
+Comment: DELAY1 used once
+DELAY2 0000009C
+
+Symbol: DELAY2
+   Definitions
+      At line 76 in file mycode.s
+   Uses
+      At line 77 in file mycode.s
+Comment: DELAY2 used once
+LOOP 00000078
+
+Symbol: LOOP
+   Definitions
+      At line 67 in file mycode.s
+   Uses
+      At line 78 in file mycode.s
+Comment: LOOP used once
+charCount 00000044
+
+Symbol: charCount
+   Definitions
+      At line 46 in file mycode.s
+   Uses
+      At line 51 in file mycode.s
+Comment: charCount used once
+flashing 00000000
+
+Symbol: flashing
+   Definitions
+      At line 9 in file mycode.s
+   Uses
+      At line 1 in file mycode.s
+Comment: flashing used once
+myString 000000A8
+
+Symbol: myString
+   Definitions
+      At line 80 in file mycode.s
+   Uses
+      At line 39 in file mycode.s
+Comment: myString used once
+mycode 00000000
+
+Symbol: mycode
+   Definitions
+      At line 6 in file mycode.s
+   Uses
+      None
+Comment: mycode unused
+stop 000000B0
+
+Symbol: stop
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+   Definitions
+      At line 83 in file mycode.s
+   Uses
+      At line 83 in file mycode.s
+Comment: stop used once
+sum 00000010
+
+Symbol: sum
+   Definitions
+      At line 26 in file mycode.s
+   Uses
+      At line 31 in file mycode.s
+Comment: sum used once
+user_code 00000000
+
+Symbol: user_code
+   Definitions
+      At line 10 in file mycode.s
+   Uses
+      At line 34 in file mycode.s
+Comment: user_code used once
+10 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+CLOCK 00B71B00
+
+Symbol: CLOCK
+   Definitions
+      At line 54 in file mycode.s
+   Uses
+      At line 55 in file mycode.s
+Comment: CLOCK used once
+DELAY1S 002DC6C0
+
+Symbol: DELAY1S
+   Definitions
+      At line 55 in file mycode.s
+   Uses
+      At line 71 in file mycode.s
+      At line 75 in file mycode.s
+
+IO0CLR 0000000C
+
+Symbol: IO0CLR
+   Definitions
+      At line 15 in file mycode.s
+   Uses
+      At line 70 in file mycode.s
+Comment: IO0CLR used once
+IO0DIR 00000008
+
+Symbol: IO0DIR
+   Definitions
+      At line 12 in file mycode.s
+   Uses
+      At line 61 in file mycode.s
+      At line 62 in file mycode.s
+      At line 65 in file mycode.s
+
+IO0PIN E0028000
+
+Symbol: IO0PIN
+   Definitions
+      At line 13 in file mycode.s
+   Uses
+      None
+Comment: IO0PIN unused
+IO0SET 00000004
+
+Symbol: IO0SET
+   Definitions
+      At line 14 in file mycode.s
+   Uses
+      At line 74 in file mycode.s
+Comment: IO0SET used once
+LEDMASK 0000FF00
+
+Symbol: LEDMASK
+   Definitions
+      At line 16 in file mycode.s
+   Uses
+      At line 63 in file mycode.s
+      At line 69 in file mycode.s
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+
+PINSEL0 E0020000
+
+Symbol: PINSEL0
+   Definitions
+      At line 11 in file mycode.s
+   Uses
+      At line 58 in file mycode.s
+Comment: PINSEL0 used once
+char 0000006F
+
+Symbol: char
+   Definitions
+      At line 38 in file mycode.s
+   Uses
+      At line 40 in file mycode.s
+Comment: char used once
+count 00000001
+
+Symbol: count
+   Definitions
+      At line 19 in file mycode.s
+   Uses
+      At line 20 in file mycode.s
+Comment: count used once
+10 symbols
+357 symbols in table
